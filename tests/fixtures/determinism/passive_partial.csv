@@ -1,0 +1,4 @@
+exchange_ts_ns,receive_ts_ns,symbol_id,bid_price,ask_price,bid_qty,ask_qty
+1000,1000,1,99900,100000,0,50
+2000,2000,1,99900,100100,0,50
+3000,3000,1,99800,99900,0,20

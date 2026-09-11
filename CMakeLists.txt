@@ -61,3 +61,29 @@ add_test(NAME execution_simulator_tests COMMAND execution_simulator_tests)
 add_test(NAME order_manager_tests COMMAND order_manager_tests)
 add_test(NAME mock_venue_gateway_tests COMMAND mock_venue_gateway_tests)
 add_test(NAME csv_reader_tests COMMAND csv_reader_tests)
+
+set(DETERMINISM_CASES
+    "aggressive_full|aggressive|3000"
+    "aggressive_partial_expired|aggressive|3000"
+    "passive_partial|passive|10000"
+    "cancel_ack|passive|1000"
+    "venue_reject|aggressive|3000"
+    "risk_reject|aggressive|3000"
+)
+foreach(case IN LISTS DETERMINISM_CASES)
+    string(REPLACE "|" ";" case_fields "${case}")
+    list(GET case_fields 0 case_name)
+    list(GET case_fields 1 case_style)
+    list(GET case_fields 2 case_cancel_after)
+    add_test(
+        NAME deterministic_replay_${case_name}
+        COMMAND ${CMAKE_COMMAND}
+            -DTRADING_MAIN=$<TARGET_FILE:trading_main>
+            -DFIXTURE=${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/determinism/${case_name}.csv
+            -DGOLDEN=${CMAKE_CURRENT_SOURCE_DIR}/tests/golden/${case_name}.txt
+            -DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/golden/${case_name}
+            -DSTYLE=${case_style}
+            -DCANCEL_AFTER=${case_cancel_after}
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/golden/run_golden.cmake
+    )
+endforeach()

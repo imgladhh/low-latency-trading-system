@@ -88,7 +88,10 @@ Build:
 ```powershell
 cmake -S . -B build
 cmake --build build --config Release
+ctest --test-dir build -C Release --output-on-failure
 ```
+
+CTest includes six deterministic replay scenarios. Each scenario runs sync replay twice, compares a normalized business artifact with its committed golden file, and verifies that a zero-drop async journal matches sync. Inputs live under `tests/fixtures/determinism/`; expected artifacts and the cross-platform CMake runner live under `tests/golden/`.
 
 Run:
 

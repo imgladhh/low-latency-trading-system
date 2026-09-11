@@ -289,6 +289,8 @@ Implementation status: **Complete (2026-09-10)**. Sync is documented as the gold
 
 #### DET-003 [P1] Add deterministic integration fixtures
 
+Implementation status: **In progress (2026-09-10)**. Six frozen replay scenarios, committed normalized business goldens, and repeat-run plus async-equivalence CTest gates are present; GitHub Actions integration remains.
+
 Create a small set of frozen fixtures covering:
 
 - aggressive full fill;
