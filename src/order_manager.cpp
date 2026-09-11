@@ -40,33 +40,44 @@ bool OrderManager::request_cancel() noexcept {
     return true;
 }
 
-bool OrderManager::on_venue_event(const VenueEvent& event, Fill& fill_out) noexcept {
+VenueEventOutcome OrderManager::on_venue_event(
+    const VenueEvent& event,
+    Fill& fill_out) noexcept {
     fill_out = Fill{};
 
     switch (event.type) {
     case VenueEventType::NewAck:
         if (order_.state != OrderState::PendingNewAck) {
-            return false;
+            return VenueEventOutcome::WrongState;
+        }
+        if (event.venue_order_id <= 0) {
+            return VenueEventOutcome::InvalidVenueOrderId;
         }
         order_.venue_order_id = event.venue_order_id;
         order_.state = OrderState::Acked;
-        return true;
+        return VenueEventOutcome::Applied;
 
     case VenueEventType::NewReject:
         if (order_.state != OrderState::PendingNewAck) {
-            return false;
+            return VenueEventOutcome::WrongState;
         }
         order_.state = OrderState::Rejected;
-        return true;
+        return VenueEventOutcome::Applied;
 
     case VenueEventType::Fill:
         if (order_.state != OrderState::Acked &&
             order_.state != OrderState::PartiallyFilled &&
             order_.state != OrderState::PendingCancel) {
-            return false;
+            return VenueEventOutcome::WrongState;
+        }
+        if (event.venue_order_id <= 0) {
+            return VenueEventOutcome::InvalidVenueOrderId;
+        }
+        if (event.venue_order_id != order_.venue_order_id) {
+            return VenueEventOutcome::WrongOrder;
         }
         if (event.fill_qty <= 0 || event.fill_qty > order_.leaves_qty) {
-            return false;
+            return VenueEventOutcome::InvalidQuantity;
         }
         order_.cum_qty += event.fill_qty;
         order_.leaves_qty -= event.fill_qty;
@@ -77,34 +88,52 @@ bool OrderManager::on_venue_event(const VenueEvent& event, Fill& fill_out) noexc
             order_.side,
         };
         order_.state = order_.leaves_qty == 0 ? OrderState::Filled : OrderState::PartiallyFilled;
-        return true;
+        return VenueEventOutcome::Applied;
 
     case VenueEventType::CancelAck:
         if (order_.state != OrderState::PendingCancel) {
-            return false;
+            return VenueEventOutcome::WrongState;
+        }
+        if (event.venue_order_id <= 0) {
+            return VenueEventOutcome::InvalidVenueOrderId;
+        }
+        if (event.venue_order_id != order_.venue_order_id) {
+            return VenueEventOutcome::WrongOrder;
         }
         order_.state = OrderState::Canceled;
-        return true;
+        order_.leaves_qty = 0;
+        return VenueEventOutcome::Applied;
 
     case VenueEventType::CancelReject:
         if (order_.state != OrderState::PendingCancel) {
-            return false;
+            return VenueEventOutcome::WrongState;
+        }
+        if (event.venue_order_id <= 0) {
+            return VenueEventOutcome::InvalidVenueOrderId;
+        }
+        if (event.venue_order_id != order_.venue_order_id) {
+            return VenueEventOutcome::WrongOrder;
         }
         order_.state = order_.leaves_qty == order_.order_qty ? OrderState::Acked : OrderState::PartiallyFilled;
-        return true;
+        return VenueEventOutcome::Applied;
 
     case VenueEventType::Expired:
-        if ((order_.state != OrderState::Acked &&
-             order_.state != OrderState::PartiallyFilled) ||
-            event.venue_order_id != order_.venue_order_id) {
-            return false;
+        if (order_.state != OrderState::Acked &&
+            order_.state != OrderState::PartiallyFilled) {
+            return VenueEventOutcome::WrongState;
+        }
+        if (event.venue_order_id <= 0) {
+            return VenueEventOutcome::InvalidVenueOrderId;
+        }
+        if (event.venue_order_id != order_.venue_order_id) {
+            return VenueEventOutcome::WrongOrder;
         }
         order_.leaves_qty = 0;
         order_.state = OrderState::Expired;
-        return true;
+        return VenueEventOutcome::Applied;
     }
 
-    return false;
+    return VenueEventOutcome::WrongState;
 }
 
 const char* order_state_name(const OrderState state) noexcept {
@@ -130,6 +159,22 @@ const char* order_state_name(const OrderState state) noexcept {
     }
 
     return "Unknown";
+}
+
+const char* venue_event_outcome_name(const VenueEventOutcome outcome) noexcept {
+    switch (outcome) {
+    case VenueEventOutcome::Applied:
+        return "Applied";
+    case VenueEventOutcome::WrongState:
+        return "WrongState";
+    case VenueEventOutcome::WrongOrder:
+        return "WrongOrder";
+    case VenueEventOutcome::InvalidQuantity:
+        return "InvalidQuantity";
+    case VenueEventOutcome::InvalidVenueOrderId:
+        return "InvalidVenueOrderId";
+    }
+    return "UnknownVenueEventOutcome";
 }
 
 }  // namespace llt

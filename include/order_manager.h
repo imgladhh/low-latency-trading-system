@@ -27,6 +27,14 @@ enum class VenueEventType : std::uint8_t {
     Expired = 5,
 };
 
+enum class VenueEventOutcome : std::uint8_t {
+    Applied = 0,
+    WrongState = 1,
+    WrongOrder = 2,
+    InvalidQuantity = 3,
+    InvalidVenueOrderId = 4,
+};
+
 struct VenueEvent {
     VenueEventType type;
     TimestampNs ts_ns;
@@ -55,7 +63,9 @@ public:
         std::int32_t qty) noexcept;
 
     [[nodiscard]] bool request_cancel() noexcept;
-    [[nodiscard]] bool on_venue_event(const VenueEvent& event, Fill& fill_out) noexcept;
+    [[nodiscard]] VenueEventOutcome on_venue_event(
+        const VenueEvent& event,
+        Fill& fill_out) noexcept;
 
     [[nodiscard]] const ManagedOrder& order() const noexcept { return order_; }
 
@@ -64,5 +74,6 @@ private:
 };
 
 [[nodiscard]] const char* order_state_name(OrderState state) noexcept;
+[[nodiscard]] const char* venue_event_outcome_name(VenueEventOutcome outcome) noexcept;
 
 }  // namespace llt

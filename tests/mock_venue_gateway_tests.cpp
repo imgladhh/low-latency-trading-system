@@ -89,7 +89,7 @@ bool apply_batch(
     std::int64_t& applied_fill_count) {
     for (std::size_t i = 0; i < batch.count; ++i) {
         llt::Fill fill{};
-        if (!oms.on_venue_event(batch.events[i], fill)) {
+        if (oms.on_venue_event(batch.events[i], fill) != llt::VenueEventOutcome::Applied) {
             return false;
         }
         if (batch.events[i].type == llt::VenueEventType::Fill) {

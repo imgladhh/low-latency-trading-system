@@ -163,6 +163,11 @@ int main(int argc, char** argv) {
     std::int64_t reject_count = 0;
     std::int64_t fill_count = 0;
     std::int64_t dropped_async_events = 0;
+    std::int64_t rejected_venue_event_count = 0;
+    std::int64_t wrong_state_event_count = 0;
+    std::int64_t wrong_order_event_count = 0;
+    std::int64_t invalid_quantity_event_count = 0;
+    std::int64_t invalid_venue_order_id_event_count = 0;
     std::int64_t client_order_id_counter = 1;
     llt::TimestampNs passive_submit_ts_ns = -1;
     const auto emit_event = [&](const llt::TradeEvent& event) {
@@ -219,7 +224,8 @@ int main(int argc, char** argv) {
         const llt::OrderState from_state = order_manager.order().state;
         const llt::Side side = order_manager.order().state == llt::OrderState::Idle ? fallback_side : order_manager.order().side;
         llt::Fill venue_fill{};
-        if (order_manager.on_venue_event(venue_event, venue_fill)) {
+        const llt::VenueEventOutcome outcome = order_manager.on_venue_event(venue_event, venue_fill);
+        if (outcome == llt::VenueEventOutcome::Applied) {
             emit_oms_transition(venue_event.ts_ns, from_state, order_manager.order().state, side);
             handle_fill(venue_fill, tick);
             if (venue_event.type == llt::VenueEventType::NewReject) {
@@ -241,6 +247,25 @@ int main(int argc, char** argv) {
                     llt::RejectReason::CancelRejectedByVenue,
                 });
             }
+            return;
+        }
+
+        ++rejected_venue_event_count;
+        switch (outcome) {
+        case llt::VenueEventOutcome::WrongState:
+            ++wrong_state_event_count;
+            break;
+        case llt::VenueEventOutcome::WrongOrder:
+            ++wrong_order_event_count;
+            break;
+        case llt::VenueEventOutcome::InvalidQuantity:
+            ++invalid_quantity_event_count;
+            break;
+        case llt::VenueEventOutcome::InvalidVenueOrderId:
+            ++invalid_venue_order_id_event_count;
+            break;
+        case llt::VenueEventOutcome::Applied:
+            break;
         }
     };
 
@@ -391,6 +416,11 @@ int main(int argc, char** argv) {
     std::cout << "fills=" << fill_count << '\n';
     std::cout << "persisted_events=" << persisted_event_count.load(std::memory_order_relaxed) << '\n';
     std::cout << "dropped_async_events=" << dropped_async_events << '\n';
+    std::cout << "venue_events.rejected=" << rejected_venue_event_count << '\n';
+    std::cout << "venue_events.wrong_state=" << wrong_state_event_count << '\n';
+    std::cout << "venue_events.wrong_order=" << wrong_order_event_count << '\n';
+    std::cout << "venue_events.invalid_quantity=" << invalid_quantity_event_count << '\n';
+    std::cout << "venue_events.invalid_venue_order_id=" << invalid_venue_order_id_event_count << '\n';
     std::cout << "net_qty=" << position.net_qty << '\n';
     std::cout << "avg_price=" << position.avg_price << '\n';
     std::cout << "realized_pnl=" << pnl.realized_pnl << '\n';

@@ -106,9 +106,9 @@ Recommended minimal model:
 - Permit `VenueEventType::Expired` while the OMS is in `OrderState::Acked` or `OrderState::PartiallyFilled`.
 - Add a distinct `OrderState::Expired`; do not collapse venue-expired IOC remainder and user-requested cancel acknowledgment into `Canceled`.
 - Set OMS `leaves_qty` to zero on expiration without changing `cum_qty`.
-- Applying `VenueEventType::Expired` successfully uses the normal success path (`true` until OMS-002 is implemented, then `Applied`); it does not require a special outcome.
-- `VenueEventType::Expired` must match the active `venue_order_id`. A mismatched event fails without mutation (`false` until OMS-002 is implemented, then `WrongOrder`).
-- `VenueEventType::Expired` received before acknowledgment or after any terminal state (`Filled`, `Canceled`, `Rejected`, or `Expired`) fails without mutation (`false` until OMS-002 is implemented, then `WrongState`).
+- Applying `VenueEventType::Expired` successfully returns `Applied`; it does not require a special outcome.
+- `VenueEventType::Expired` must match the active `venue_order_id`. A mismatched event returns `WrongOrder` without mutation.
+- `VenueEventType::Expired` received before acknowledgment or after any terminal state (`Filled`, `Canceled`, `Rejected`, or `Expired`) returns `WrongState` without mutation.
 - Preserve the initiating terminal cause directly in OMS state so state-transition logs and metrics can distinguish `Expired` from `Canceled` without consulting another stream.
 - Because both enums intentionally use the member name `Expired`, logs, test labels, assertion messages, and design documentation must spell them as `VenueEventType::Expired` and `OrderState::Expired`; unqualified `Expired` is not permitted in diagnostic text.
 
@@ -205,6 +205,8 @@ Acceptance criteria:
 
 #### OMS-001 [P1] Validate venue order identity
 
+Implementation status: **Complete (2026-09-10)**. Acknowledgments require a positive venue ID, and all live-order events validate state before positive, matching venue identity without mutating rejected events.
+
 Requirements:
 
 - `NewAck` must provide a valid nonzero venue order ID.
@@ -214,6 +216,8 @@ Requirements:
 - `NewReject` may use venue order ID zero because no venue order was established.
 
 #### OMS-002 [P1] Replace silent boolean failure with an explicit outcome
+
+Implementation status: **Complete (2026-09-10)**. `on_venue_event()` returns a named outcome, main exposes deterministic per-outcome rejection counters, and accounting consumes only applied fills.
 
 Replace the ambiguous `bool OrderManager::on_venue_event(...)` result with an outcome that distinguishes at least:
 
