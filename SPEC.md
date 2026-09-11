@@ -372,6 +372,8 @@ Acceptance criteria:
 
 #### CONFIG-001 [P2] Parse numeric configuration strictly
 
+Implementation status: **Complete (2026-09-10)**. Cancel duration parsing now uses complete `from_chars` validation with named range diagnostics and focused boundary tests.
+
 - Replace unchecked `strtoll` usage with complete `from_chars` validation.
 - Reject empty input, trailing characters, overflow, and negative cancel durations.
 - Print the invalid argument name and accepted range.

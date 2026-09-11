@@ -11,6 +11,7 @@
 
 #include "accounting_engine.h"
 #include "csv_reader.h"
+#include "config_parser.h"
 #include "fill_logger.h"
 #include "layout_utils.h"
 #include "latency_stats.h"
@@ -47,7 +48,7 @@ SinkMode parse_sink_mode(const char* value) {
         return SinkMode::Async;
     }
 
-    throw std::invalid_argument("invalid sink mode");
+    throw std::invalid_argument("sink_mode is invalid; accepted values are sync|async");
 }
 
 llt::ExecutionStyle parse_execution_style(const char* value) {
@@ -59,7 +60,7 @@ llt::ExecutionStyle parse_execution_style(const char* value) {
         return llt::ExecutionStyle::Passive;
     }
 
-    throw std::invalid_argument("invalid execution style");
+    throw std::invalid_argument("execution_style is invalid; accepted values are aggressive|passive");
 }
 
 RuntimeConfig parse_runtime_config(const int argc, char** argv) {
@@ -80,7 +81,8 @@ RuntimeConfig parse_runtime_config(const int argc, char** argv) {
         config.default_execution_style = parse_execution_style(argv[4]);
     }
     if (argc >= 6) {
-        config.passive_cancel_after_ns = std::strtoll(argv[5], nullptr, 10);
+        config.passive_cancel_after_ns =
+            llt::parse_nonnegative_timestamp_arg(argv[5], "passive_cancel_after_ns");
     }
 
     return config;
@@ -97,8 +99,8 @@ int main(int argc, char** argv) {
     RuntimeConfig config{};
     try {
         config = parse_runtime_config(argc, argv);
-    } catch (const std::invalid_argument&) {
-        std::cerr << "invalid runtime argument. sink mode must be 'sync|async', execution mode must be 'aggressive|passive'\n";
+    } catch (const std::invalid_argument& error) {
+        std::cerr << error.what() << '\n';
         return EXIT_FAILURE;
     }
 
