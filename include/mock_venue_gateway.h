@@ -72,4 +72,9 @@ private:
     ExecutionSimulator execution_{};
 };
 
+[[nodiscard]] bool submit_cancel_request(
+    MockVenueGateway& gateway,
+    OrderManager& order_manager,
+    TimestampNs request_ts_ns) noexcept;
+
 }  // namespace llt

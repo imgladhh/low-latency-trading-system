@@ -178,12 +178,51 @@ bool test_aggressive_ioc_lifecycles() {
     return true;
 }
 
+bool test_cancel_submission_failure_does_not_strand_oms() {
+    llt::MockVenueGateway inactive_gateway(0, 0);
+    llt::OrderManager oms;
+    llt::Fill fill{};
+    if (!oms.submit_new(20, llt::Side::Buy, 100000, 10) ||
+        oms.on_venue_event(
+            llt::VenueEvent{llt::VenueEventType::NewAck, 1000, 777, 0, 0}, fill) !=
+            llt::VenueEventOutcome::Applied) {
+        return false;
+    }
+
+    if (llt::submit_cancel_request(inactive_gateway, oms, 1100)) {
+        std::cerr << "inactive gateway unexpectedly accepted cancel\n";
+        return false;
+    }
+    if (oms.order().state != llt::OrderState::Acked) {
+        std::cerr << "failed gateway cancel stranded OMS\n";
+        return false;
+    }
+
+    llt::MockVenueGateway active_gateway(0, 0);
+    llt::OrderManager active_oms;
+    if (!active_gateway.send_new(llt::GatewayNewOrder{
+            22, llt::Side::Buy, 10, 100000, llt::ExecutionStyle::Passive, 2000}) ||
+        !active_oms.submit_new(22, llt::Side::Buy, 100000, 10)) {
+        return false;
+    }
+    const llt::VenueEventBatch ack = active_gateway.on_tick(
+        llt::MarketTick{2000, 2000, 100000, 100200, 1, 10, 10});
+    std::int64_t applied_fill_count = 0;
+    llt::AccountingEngine accounting;
+    if (!apply_batch(ack, active_oms, accounting, applied_fill_count) ||
+        !llt::submit_cancel_request(active_gateway, active_oms, 2100)) {
+        return false;
+    }
+    return active_oms.order().state == llt::OrderState::PendingCancel;
+}
+
 }  // namespace
 
 int main() {
     const bool ok = test_new_ack_and_fill_flow() &&
         test_cancel_ack_flow() &&
-        test_aggressive_ioc_lifecycles();
+        test_aggressive_ioc_lifecycles() &&
+        test_cancel_submission_failure_does_not_strand_oms();
     if (!ok) {
         return EXIT_FAILURE;
     }

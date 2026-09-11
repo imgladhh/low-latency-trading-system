@@ -235,6 +235,8 @@ Requirements:
 
 #### OMS-003 [P2] Handle internal gateway command failure
 
+Implementation status: **Complete (2026-09-10)**. Cancel submission now verifies the OMS state, requires gateway acceptance, and only then enters `PendingCancel`; failure leaves OMS business state unchanged.
+
 - Do not ignore `MockVenueGateway::send_cancel()` failure after the OMS has entered `PendingCancel`.
 - Either verify the gateway precondition before the OMS transition or immediately apply an explicit deterministic cancel rejection/rollback.
 

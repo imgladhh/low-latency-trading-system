@@ -156,4 +156,18 @@ void MockVenueGateway::close_active_order_if_done() noexcept {
     }
 }
 
+bool submit_cancel_request(
+    MockVenueGateway& gateway,
+    OrderManager& order_manager,
+    const TimestampNs request_ts_ns) noexcept {
+    const OrderState state = order_manager.order().state;
+    if (state != OrderState::Acked && state != OrderState::PartiallyFilled) {
+        return false;
+    }
+    if (!gateway.send_cancel(request_ts_ns)) {
+        return false;
+    }
+    return order_manager.request_cancel();
+}
+
 }  // namespace llt

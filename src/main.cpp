@@ -308,9 +308,8 @@ int main(int argc, char** argv) {
             tick.receive_ts_ns - passive_submit_ts_ns >= config.passive_cancel_after_ns) {
             const llt::OrderState from_state = order_manager.order().state;
             const llt::Side from_side = order_manager.order().side;
-            if (order_manager.request_cancel()) {
+            if (llt::submit_cancel_request(gateway, order_manager, tick.receive_ts_ns)) {
                 emit_oms_transition(tick.receive_ts_ns, from_state, llt::OrderState::PendingCancel, from_side);
-                (void) gateway.send_cancel(tick.receive_ts_ns);
             }
         }
 
