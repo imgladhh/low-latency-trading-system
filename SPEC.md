@@ -458,7 +458,7 @@ Acceptance criteria:
 
 #### SPSC-001 [P2] Add a real producer/consumer stress test
 
-Implementation status: **Functional stress-test complete (2026-09-11)**. A strict one-producer/one-consumer test runs three 500,000-value passes through a capacity-eight queue, forces saturation before recovery, verifies every sequence value in FIFO order, and uses a shared 10-second deadline with failure diagnostics. Linux ThreadSanitizer CI is tracked as the remaining optional evidence.
+Implementation status: **Complete (2026-09-11)**. A strict one-producer/one-consumer test runs three 500,000-value passes through a capacity-eight queue, forces saturation before recovery, verifies every sequence value in FIFO order, and uses a shared 10-second Release deadline with failure diagnostics. A separate Linux Clang ThreadSanitizer job uses a 25-second internal deadline and a 30-second process-level backstop.
 
 Required test characteristics:
 

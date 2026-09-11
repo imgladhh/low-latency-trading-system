@@ -24,3 +24,25 @@ jobs:
 
       - name: Run unit, integration, and deterministic replay tests
         run: ctest --test-dir build --build-config Release --output-on-failure
+
+  thread-sanitizer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Configure Clang ThreadSanitizer build
+        run: >-
+          cmake -S . -B build-tsan
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          -DCMAKE_CXX_COMPILER=clang++
+          -DCMAKE_CXX_FLAGS="-fsanitize=thread -fno-omit-frame-pointer -g -DLLT_THREAD_SANITIZER=1"
+          -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=thread"
+
+      - name: Build SPSC stress test
+        run: cmake --build build-tsan --target spsc_ring_buffer_tests --parallel
+
+      - name: Run SPSC stress test under ThreadSanitizer
+        run: timeout --signal=KILL 30s ctest --test-dir build-tsan -R '^spsc_ring_buffer_tests$' --output-on-failure

@@ -166,7 +166,13 @@ bool run_concurrent_stress_iteration(
 
 bool test_concurrent_stress() {
     constexpr int repeat_count = 3;
+#if defined(LLT_THREAD_SANITIZER)
+    // TSan instrumentation is intentionally given a larger hang guard than the normal
+    // Release test. The CI process-level timeout remains the final 30-second backstop.
+    constexpr auto release_deadline = std::chrono::seconds(25);
+#else
     constexpr auto release_deadline = std::chrono::seconds(10);
+#endif
     const auto deadline = std::chrono::steady_clock::now() + release_deadline;
     for (int iteration = 1; iteration <= repeat_count; ++iteration) {
         if (!run_concurrent_stress_iteration(iteration, deadline)) {
