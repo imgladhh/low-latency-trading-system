@@ -408,6 +408,8 @@ Required tests:
 
 #### PERF-001 [P2] Prevent latency-vector growth during replay
 
+Implementation status: **Complete (2026-09-11)**. Every collector now uses checked startup sizing and fixed contiguous storage; recording follows a drop-new policy with an independent overflow counter, and any overflow invalidates the run.
+
 Current defect:
 
 - Every collector reserves only `ticks.size()` samples.
@@ -437,6 +439,8 @@ Current `max_per_tick` configuration values:
 These values describe the current configuration, not permanent architectural facts. A gateway or event-flow change that can emit more records must update `max_per_tick` and its worst-case tests in the same change.
 
 #### PERF-002 [P2] Make percentile reporting honest
+
+Implementation status: **Complete (2026-09-11)**. Reports identify the nearest-rank estimator, suppress p99/tail-99 below 100 samples and p99.9 below 1000 samples, and retain all copy/sort work after replay.
 
 - Document the percentile estimator.
 - Do not present p99 or p99.9 as meaningful for tiny sample sets.

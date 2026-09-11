@@ -1,3 +1,5 @@
+#include <algorithm>
+#include <array>
 #include <cstdlib>
 #include <chrono>
 #include <atomic>
@@ -139,12 +141,23 @@ int main(int argc, char** argv) {
     std::atomic<bool> sink_done{false};
     std::atomic<std::int64_t> persisted_event_count{0};
 
-    strategy_latency.reserve(ticks.size());
-    risk_latency.reserve(ticks.size());
-    execution_latency.reserve(ticks.size());
-    accounting_latency.reserve(ticks.size());
-    event_sink_latency.reserve(ticks.size());
-    end_to_end_latency.reserve(ticks.size());
+    constexpr std::size_t strategy_max_per_tick = 1;
+    constexpr std::size_t risk_max_per_tick = 1;
+    constexpr std::size_t execution_max_per_tick = 2;
+    constexpr std::size_t accounting_max_per_tick = 1;
+    constexpr std::size_t event_sink_max_per_tick = 4;
+    constexpr std::size_t end_to_end_max_per_tick = 1;
+    try {
+        strategy_latency.initialize("strategy", ticks.size(), strategy_max_per_tick);
+        risk_latency.initialize("risk", ticks.size(), risk_max_per_tick);
+        execution_latency.initialize("execution", ticks.size(), execution_max_per_tick);
+        accounting_latency.initialize("accounting", ticks.size(), accounting_max_per_tick);
+        event_sink_latency.initialize("event_sink", ticks.size(), event_sink_max_per_tick);
+        end_to_end_latency.initialize("end_to_end", ticks.size(), end_to_end_max_per_tick);
+    } catch (const std::exception& error) {
+        std::cerr << error.what() << '\n';
+        return EXIT_FAILURE;
+    }
 
     std::thread sink_thread;
     if (config.sink_mode == SinkMode::Async) {
@@ -195,7 +208,7 @@ int main(int argc, char** argv) {
             ++dropped_async_events;
         }
         const auto sink_end = std::chrono::steady_clock::now();
-        event_sink_latency.record(std::chrono::duration_cast<std::chrono::nanoseconds>(sink_end - sink_start).count());
+        (void)event_sink_latency.record(std::chrono::duration_cast<std::chrono::nanoseconds>(sink_end - sink_start).count());
     };
 
     const auto handle_fill = [&](const llt::Fill& fill, const llt::MarketTick& tick) {
@@ -210,7 +223,7 @@ int main(int argc, char** argv) {
         }
         accounting.mark_to_market((tick.bid_price + tick.ask_price) / 2);
         const auto accounting_end = std::chrono::steady_clock::now();
-        accounting_latency.record(std::chrono::duration_cast<std::chrono::nanoseconds>(
+        (void)accounting_latency.record(std::chrono::duration_cast<std::chrono::nanoseconds>(
             accounting_end - accounting_start).count());
 
         emit_event(llt::TradeEvent{
@@ -307,7 +320,7 @@ int main(int argc, char** argv) {
         const auto resting_execution_start = std::chrono::steady_clock::now();
         const llt::VenueEventBatch batch = gateway.on_tick(tick);
         const auto resting_execution_end = std::chrono::steady_clock::now();
-        execution_latency.record(std::chrono::duration_cast<std::chrono::nanoseconds>(
+        (void)execution_latency.record(std::chrono::duration_cast<std::chrono::nanoseconds>(
             resting_execution_end - resting_execution_start).count());
         for (std::size_t i = 0; i < batch.count; ++i) {
             handle_venue_event(batch.events[i], order_manager.order().side, tick);
@@ -336,9 +349,9 @@ int main(int argc, char** argv) {
         const auto strategy_start = std::chrono::steady_clock::now();
         const auto decision = strategy.on_tick(tick);
         const auto strategy_end = std::chrono::steady_clock::now();
-        strategy_latency.record(std::chrono::duration_cast<std::chrono::nanoseconds>(strategy_end - strategy_start).count());
+        (void)strategy_latency.record(std::chrono::duration_cast<std::chrono::nanoseconds>(strategy_end - strategy_start).count());
         if (!decision.has_order) {
-            end_to_end_latency.record(std::chrono::duration_cast<std::chrono::nanoseconds>(
+            (void)end_to_end_latency.record(std::chrono::duration_cast<std::chrono::nanoseconds>(
                 std::chrono::steady_clock::now() - loop_start).count());
             continue;
         }
@@ -350,7 +363,7 @@ int main(int argc, char** argv) {
         const auto risk_decision = risk.evaluate(accounting.position(), decision.order);
         if (!risk_decision.accepted) {
             const auto risk_end = std::chrono::steady_clock::now();
-            risk_latency.record(std::chrono::duration_cast<std::chrono::nanoseconds>(risk_end - risk_start).count());
+            (void)risk_latency.record(std::chrono::duration_cast<std::chrono::nanoseconds>(risk_end - risk_start).count());
             ++reject_count;
             const llt::TradeEvent reject_event{
                 tick.receive_ts_ns,
@@ -361,12 +374,12 @@ int main(int argc, char** argv) {
                 risk_decision.reject_reason,
             };
             emit_event(reject_event);
-            end_to_end_latency.record(std::chrono::duration_cast<std::chrono::nanoseconds>(
+            (void)end_to_end_latency.record(std::chrono::duration_cast<std::chrono::nanoseconds>(
                 std::chrono::steady_clock::now() - loop_start).count());
             continue;
         }
         const auto risk_end = std::chrono::steady_clock::now();
-        risk_latency.record(std::chrono::duration_cast<std::chrono::nanoseconds>(risk_end - risk_start).count());
+        (void)risk_latency.record(std::chrono::duration_cast<std::chrono::nanoseconds>(risk_end - risk_start).count());
 
         // Execution simulation is on the hot path because fills determine immediate state
         // transitions and PnL updates for this tick.
@@ -403,13 +416,13 @@ int main(int argc, char** argv) {
             }
         }
         const auto execution_end = std::chrono::steady_clock::now();
-        execution_latency.record(std::chrono::duration_cast<std::chrono::nanoseconds>(
+        (void)execution_latency.record(std::chrono::duration_cast<std::chrono::nanoseconds>(
             execution_end - execution_start).count());
         if (config.default_execution_style == llt::ExecutionStyle::Passive &&
             submit_report_accepted) {
             passive_submit_ts_ns = tick.receive_ts_ns;
         }
-        end_to_end_latency.record(std::chrono::duration_cast<std::chrono::nanoseconds>(
+        (void)end_to_end_latency.record(std::chrono::duration_cast<std::chrono::nanoseconds>(
             std::chrono::steady_clock::now() - loop_start).count());
     }
 
@@ -441,7 +454,18 @@ int main(int argc, char** argv) {
     std::cout << "events.dropped=" << dropped_async_events << '\n';
     const bool async_drop_failed = dropped_async_events != 0;
     const bool persistence_write_failed = persistence_failed.load(std::memory_order_relaxed);
-    const bool run_failed = async_drop_failed || persistence_write_failed;
+    const std::array<const llt::LatencyStats*, 6> latency_collectors{
+        &strategy_latency,
+        &risk_latency,
+        &execution_latency,
+        &accounting_latency,
+        &event_sink_latency,
+        &end_to_end_latency,
+    };
+    const bool latency_overflow_failed = std::any_of(
+        latency_collectors.begin(), latency_collectors.end(),
+        [](const llt::LatencyStats* stats) { return stats->overflow_count() != 0; });
+    const bool run_failed = async_drop_failed || persistence_write_failed || latency_overflow_failed;
     std::cout << "run_status=" << (run_failed ? "failed" : "ok") << '\n';
     std::cout << "failure_reasons=";
     if (!run_failed) {
@@ -452,6 +476,9 @@ int main(int argc, char** argv) {
         }
         if (persistence_write_failed) {
             std::cout << (async_drop_failed ? "," : "") << "persist_write";
+        }
+        if (latency_overflow_failed) {
+            std::cout << ((async_drop_failed || persistence_write_failed) ? "," : "") << "latency_overflow";
         }
     }
     std::cout << '\n';
