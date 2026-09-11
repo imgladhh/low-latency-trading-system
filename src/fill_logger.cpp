@@ -16,6 +16,8 @@ const char* reject_reason_name(const RejectReason reason) noexcept {
         return "NEW_REJECTED_BY_VENUE";
     case RejectReason::CancelRejectedByVenue:
         return "CANCEL_REJECTED_BY_VENUE";
+    case RejectReason::InvalidQuantity:
+        return "INVALID_QUANTITY";
     }
 
     return "UNKNOWN";

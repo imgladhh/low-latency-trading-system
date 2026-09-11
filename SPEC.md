@@ -380,6 +380,8 @@ Implementation status: **Complete (2026-09-10)**. Cancel duration parsing now us
 
 #### API-001 [P2] Validate order requests at boundaries
 
+Implementation status: **Complete (2026-09-10)**. Risk rejects non-positive quantities as `InvalidQuantity` before position-limit evaluation, with a dedicated test target.
+
 - `RiskEngine` must reject non-positive quantities.
 - Gateway and OMS validation must remain independently defensive.
 - Invalid requests must have a distinct reason rather than being classified as `MaxPosition`.

@@ -55,6 +55,9 @@ target_link_libraries(csv_reader_tests PRIVATE trading_kernel)
 add_executable(config_parser_tests tests/config_parser_tests.cpp)
 target_link_libraries(config_parser_tests PRIVATE trading_kernel)
 
+add_executable(risk_engine_tests tests/risk_engine_tests.cpp)
+target_link_libraries(risk_engine_tests PRIVATE trading_kernel)
+
 enable_testing()
 add_test(NAME accounting_tests COMMAND accounting_tests)
 add_test(NAME latency_stats_tests COMMAND latency_stats_tests)
@@ -66,6 +69,7 @@ add_test(NAME order_manager_tests COMMAND order_manager_tests)
 add_test(NAME mock_venue_gateway_tests COMMAND mock_venue_gateway_tests)
 add_test(NAME csv_reader_tests COMMAND csv_reader_tests)
 add_test(NAME config_parser_tests COMMAND config_parser_tests)
+add_test(NAME risk_engine_tests COMMAND risk_engine_tests)
 
 set(DETERMINISM_CASES
     "aggressive_full|aggressive|3000"

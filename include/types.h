@@ -58,6 +58,7 @@ enum class RejectReason : std::uint8_t {
     MaxPosition = 1,
     NewRejectedByVenue = 2,
     CancelRejectedByVenue = 3,
+    InvalidQuantity = 4,
 };
 
 struct OrderDecision {
