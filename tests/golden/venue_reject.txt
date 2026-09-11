@@ -25,6 +25,7 @@ venue_events.wrong_state=0
 venue_events.wrong_order=0
 venue_events.invalid_quantity=0
 venue_events.invalid_venue_order_id=0
+accounting.rejected_fills=0
 net_qty=0
 avg_price=0
 realized_pnl=985000

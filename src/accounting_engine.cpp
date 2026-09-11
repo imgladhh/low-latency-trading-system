@@ -12,7 +12,11 @@ std::int64_t abs_qty(const std::int64_t qty) {
 
 }  // namespace
 
-void AccountingEngine::apply_fill(const Fill& fill) {
+bool AccountingEngine::apply_fill(const Fill& fill) {
+    if (fill.quantity <= 0) {
+        return false;
+    }
+
     const std::int64_t signed_fill_qty = side_sign(fill.side) * static_cast<std::int64_t>(fill.quantity);
     const std::int64_t current_qty = position_state_.net_qty;
 
@@ -20,63 +24,42 @@ void AccountingEngine::apply_fill(const Fill& fill) {
     // or flips the position. The remaining branches only decide how inventory and PnL evolve.
     pnl_state_.cash -= signed_fill_qty * fill.price;
 
-    if (current_qty == 0 || ((current_qty > 0) == (signed_fill_qty > 0))) {
-        const std::int64_t new_qty = current_qty + signed_fill_qty;
-        const std::int64_t current_abs = abs_qty(current_qty);
-        const std::int64_t fill_abs = abs_qty(signed_fill_qty);
-        const std::int64_t new_abs = abs_qty(new_qty);
-
-        if (new_abs == 0) {
-            position_state_.net_qty = 0;
-            position_state_.avg_price = 0;
-            pnl_state_.unrealized_pnl = 0;
-            return;
-        }
-
-        const std::int64_t weighted_notional =
-            static_cast<std::int64_t>(position_state_.avg_price) * current_abs +
-            static_cast<std::int64_t>(fill.price) * fill_abs;
-
-        position_state_.net_qty = new_qty;
-        position_state_.avg_price = weighted_notional / new_abs;
-        return;
-    }
-
-    // Opposite-direction fills first close existing inventory. If quantity remains after crossing
-    // zero, the residual becomes a new position opened at the incoming fill price.
-    const std::int64_t current_direction = current_qty > 0 ? 1 : -1;
-    const std::int64_t closing_qty = abs_qty(current_qty) < abs_qty(signed_fill_qty)
-        ? abs_qty(current_qty)
-        : abs_qty(signed_fill_qty);
-
-    pnl_state_.realized_pnl +=
-        (fill.price - position_state_.avg_price) * closing_qty * current_direction;
-
     const std::int64_t residual_qty = current_qty + signed_fill_qty;
+    if (current_qty == 0 || ((current_qty > 0) == (signed_fill_qty > 0))) {
+        open_cost_ += signed_fill_qty * fill.price;
+    } else if (residual_qty == 0) {
+        open_cost_ = 0;
+    } else if ((residual_qty > 0) == (current_qty > 0)) {
+        // Partial-close policy: retain cost in proportion to the remaining position and truncate
+        // integer division toward zero. The discarded fractional allocation is not lost: because
+        // realized_pnl is derived as cash + open_cost, it deterministically enters realized PnL
+        // on this close. Together with unrealized = net_qty * mark - open_cost, this preserves
+        // realized + unrealized == cash + net_qty * mark after every update.
+        open_cost_ = open_cost_ * abs_qty(residual_qty) / abs_qty(current_qty);
+    } else {
+        open_cost_ = residual_qty * fill.price;
+    }
+
     position_state_.net_qty = residual_qty;
-
-    if (residual_qty == 0) {
-        position_state_.avg_price = 0;
-        pnl_state_.unrealized_pnl = 0;
-        return;
-    }
-
-    if ((residual_qty > 0) == (current_qty > 0)) {
-        return;
-    }
-
-    position_state_.avg_price = fill.price;
+    refresh_derived();
+    return true;
 }
 
 void AccountingEngine::mark_to_market(const Price mid_price) {
-    if (position_state_.net_qty == 0) {
-        pnl_state_.unrealized_pnl = 0;
-        return;
-    }
+    mark_price_ = mid_price;
+    refresh_derived();
+}
 
-    const std::int64_t direction = position_state_.net_qty > 0 ? 1 : -1;
-    pnl_state_.unrealized_pnl =
-        (mid_price - position_state_.avg_price) * abs_qty(position_state_.net_qty) * direction;
+void AccountingEngine::refresh_derived() noexcept {
+    if (position_state_.net_qty == 0) {
+        open_cost_ = 0;
+        position_state_.avg_price = 0;
+        pnl_state_.unrealized_pnl = 0;
+    } else {
+        position_state_.avg_price = abs_qty(open_cost_) / abs_qty(position_state_.net_qty);
+        pnl_state_.unrealized_pnl = position_state_.net_qty * mark_price_ - open_cost_;
+    }
+    pnl_state_.realized_pnl = pnl_state_.cash + open_cost_;
 }
 
 }  // namespace llt

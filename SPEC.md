@@ -320,6 +320,8 @@ Acceptance criteria:
 
 #### ACCT-001 [P1] Preserve exact cost basis across non-divisible averages
 
+Implementation status: **Complete (2026-09-10)**. Signed aggregate open cost and cash are now the source of truth; all derived PnL fields preserve the reconciliation identity and fixed-seed property coverage checks every event.
+
 Current risk:
 
 - Weighted average price is calculated using integer division.
@@ -330,6 +332,7 @@ Requirements:
 - Store exact aggregate open-position cost basis, or preserve the division remainder explicitly.
 - Treat `avg_price` as a derived/display value when exact division is impossible.
 - Define one documented rounding policy at the external display boundary.
+- On a partial close, retain `open_cost` in proportion to remaining absolute quantity and truncate division toward zero. The fractional allocation difference is deterministically assigned to realized PnL through `realized_pnl = cash + open_cost`; it is not silently discarded. Derived `avg_price` also truncates toward zero.
 - Reject non-positive fill quantities at the accounting API boundary.
 - When `net_qty == 0`, exact open cost basis and any remainder must be cleared, `avg_price` must be exactly zero, and unrealized PnL must be exactly zero.
 

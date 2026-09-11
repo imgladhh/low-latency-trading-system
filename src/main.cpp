@@ -168,6 +168,7 @@ int main(int argc, char** argv) {
     std::int64_t wrong_order_event_count = 0;
     std::int64_t invalid_quantity_event_count = 0;
     std::int64_t invalid_venue_order_id_event_count = 0;
+    std::int64_t accounting_rejected_fill_count = 0;
     std::int64_t client_order_id_counter = 1;
     llt::TimestampNs passive_submit_ts_ns = -1;
     const auto emit_event = [&](const llt::TradeEvent& event) {
@@ -189,7 +190,10 @@ int main(int argc, char** argv) {
         }
 
         const auto accounting_start = std::chrono::steady_clock::now();
-        accounting.apply_fill(fill);
+        if (!accounting.apply_fill(fill)) {
+            ++accounting_rejected_fill_count;
+            return;
+        }
         accounting.mark_to_market((tick.bid_price + tick.ask_price) / 2);
         const auto accounting_end = std::chrono::steady_clock::now();
         accounting_latency.record(std::chrono::duration_cast<std::chrono::nanoseconds>(
@@ -422,6 +426,7 @@ int main(int argc, char** argv) {
     std::cout << "venue_events.wrong_order=" << wrong_order_event_count << '\n';
     std::cout << "venue_events.invalid_quantity=" << invalid_quantity_event_count << '\n';
     std::cout << "venue_events.invalid_venue_order_id=" << invalid_venue_order_id_event_count << '\n';
+    std::cout << "accounting.rejected_fills=" << accounting_rejected_fill_count << '\n';
     std::cout << "net_qty=" << position.net_qty << '\n';
     std::cout << "avg_price=" << position.avg_price << '\n';
     std::cout << "realized_pnl=" << pnl.realized_pnl << '\n';

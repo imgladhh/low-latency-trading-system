@@ -93,7 +93,9 @@ bool apply_batch(
             return false;
         }
         if (batch.events[i].type == llt::VenueEventType::Fill) {
-            accounting.apply_fill(fill);
+            if (!accounting.apply_fill(fill)) {
+                return false;
+            }
             ++applied_fill_count;
         }
     }
