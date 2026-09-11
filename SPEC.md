@@ -137,6 +137,8 @@ Acceptance criteria:
 
 #### INPUT-001 [P1] Fail fast on malformed CSV rows
 
+Implementation status: **Complete (2026-09-10)**. CSV loading now throws a structured, stable `CsvReadError` with category, path, one-based line, and field- or invariant-specific detail.
+
 Current defect:
 
 - `CsvReader::read_all()` silently skips rows that fail parsing.
@@ -158,6 +160,8 @@ The public error category must distinguish at least:
 - `MultiSymbolError`: a valid row introduces a second symbol into the single-symbol replay.
 
 #### INPUT-002 [P1] Validate market-data invariants
+
+Implementation status: **Complete (2026-09-10)**. Schema, per-row value, and cross-row validation are enforced before replay, with LF/CRLF and fail-fast malformed-middle-row coverage.
 
 Schema validation must cover:
 

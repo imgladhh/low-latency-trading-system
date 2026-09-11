@@ -7,6 +7,7 @@
 #include <string>
 #include <string_view>
 #include <thread>
+#include <vector>
 
 #include "accounting_engine.h"
 #include "csv_reader.h"
@@ -101,10 +102,11 @@ int main(int argc, char** argv) {
         return EXIT_FAILURE;
     }
 
-    const llt::CsvReader reader;
-    const auto ticks = reader.read_all(argv[1]);
-    if (ticks.empty()) {
-        std::cerr << "no ticks loaded\n";
+    std::vector<llt::MarketTick> ticks;
+    try {
+        ticks = llt::CsvReader{}.read_all(argv[1]);
+    } catch (const llt::CsvReadError& error) {
+        std::cerr << error.what() << '\n';
         return EXIT_FAILURE;
     }
 
