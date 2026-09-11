@@ -117,7 +117,11 @@ int main(int argc, char** argv) {
         std::cerr << "failed to open persistence path: " << config.persistence_path << '\n';
         return EXIT_FAILURE;
     }
+    std::atomic<bool> persistence_failed{false};
     persistence_out << "event_kind,ts_ns,side,price,quantity,reject_reason\n";
+    if (!persistence_out) {
+        persistence_failed.store(true, std::memory_order_relaxed);
+    }
 
     const std::uint32_t symbol_id = ticks.front().symbol_id;
     llt::AccountingEngine accounting;
@@ -146,13 +150,16 @@ int main(int argc, char** argv) {
     if (config.sink_mode == SinkMode::Async) {
         // Console/file output is intentionally kept off the trading thread because I/O is
         // slow and jittery compared with the deterministic per-tick state transitions.
-        sink_thread = std::thread([&event_queue, &sink_done, &persistence_out, &persisted_event_count]() {
+        sink_thread = std::thread([&event_queue, &sink_done, &persistence_out, &persisted_event_count, &persistence_failed]() {
             llt::TradeEvent event{};
             while (!sink_done.load(std::memory_order_acquire) || !event_queue.empty()) {
                 if (event_queue.try_pop(event)) {
                     llt::write_trade_event_log(std::cout, event);
-                    llt::write_trade_event_persistence(persistence_out, event);
-                    persisted_event_count.fetch_add(1, std::memory_order_relaxed);
+                    if (llt::write_trade_event_persistence(persistence_out, event)) {
+                        persisted_event_count.fetch_add(1, std::memory_order_relaxed);
+                    } else {
+                        persistence_failed.store(true, std::memory_order_relaxed);
+                    }
                     continue;
                 }
 
@@ -165,6 +172,7 @@ int main(int argc, char** argv) {
     std::int64_t reject_count = 0;
     std::int64_t fill_count = 0;
     std::int64_t dropped_async_events = 0;
+    std::int64_t accepted_event_count = 0;
     std::int64_t rejected_venue_event_count = 0;
     std::int64_t wrong_state_event_count = 0;
     std::int64_t wrong_order_event_count = 0;
@@ -174,11 +182,15 @@ int main(int argc, char** argv) {
     std::int64_t client_order_id_counter = 1;
     llt::TimestampNs passive_submit_ts_ns = -1;
     const auto emit_event = [&](const llt::TradeEvent& event) {
+        ++accepted_event_count;
         const auto sink_start = std::chrono::steady_clock::now();
         if (config.sink_mode == SinkMode::Sync) {
             llt::write_trade_event_log(std::cout, event);
-            llt::write_trade_event_persistence(persistence_out, event);
-            persisted_event_count.fetch_add(1, std::memory_order_relaxed);
+            if (llt::write_trade_event_persistence(persistence_out, event)) {
+                persisted_event_count.fetch_add(1, std::memory_order_relaxed);
+            } else {
+                persistence_failed.store(true, std::memory_order_relaxed);
+            }
         } else if (!event_queue.try_push(event)) {
             ++dropped_async_events;
         }
@@ -406,6 +418,9 @@ int main(int argc, char** argv) {
         sink_thread.join();
     }
     persistence_out.flush();
+    if (!persistence_out) {
+        persistence_failed.store(true, std::memory_order_relaxed);
+    }
 
     // Summary/reporting is cold-path work: it runs once after replay and is intentionally
     // kept out of the per-tick latency-sensitive trading flow.
@@ -421,8 +436,25 @@ int main(int argc, char** argv) {
     std::cout << "fills=" << fill_count << '\n';
     std::cout << "persisted_events=" << persisted_event_count.load(std::memory_order_relaxed) << '\n';
     std::cout << "dropped_async_events=" << dropped_async_events << '\n';
-    const bool run_failed = dropped_async_events != 0;
+    std::cout << "events.accepted=" << accepted_event_count << '\n';
+    std::cout << "events.persisted=" << persisted_event_count.load(std::memory_order_relaxed) << '\n';
+    std::cout << "events.dropped=" << dropped_async_events << '\n';
+    const bool async_drop_failed = dropped_async_events != 0;
+    const bool persistence_write_failed = persistence_failed.load(std::memory_order_relaxed);
+    const bool run_failed = async_drop_failed || persistence_write_failed;
     std::cout << "run_status=" << (run_failed ? "failed" : "ok") << '\n';
+    std::cout << "failure_reasons=";
+    if (!run_failed) {
+        std::cout << "none";
+    } else {
+        if (async_drop_failed) {
+            std::cout << "async_drop";
+        }
+        if (persistence_write_failed) {
+            std::cout << (async_drop_failed ? "," : "") << "persist_write";
+        }
+    }
+    std::cout << '\n';
     std::cout << "venue_events.rejected=" << rejected_venue_event_count << '\n';
     std::cout << "venue_events.wrong_state=" << wrong_state_event_count << '\n';
     std::cout << "venue_events.wrong_order=" << wrong_order_event_count << '\n';

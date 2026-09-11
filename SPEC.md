@@ -388,6 +388,8 @@ Implementation status: **Complete (2026-09-10)**. Risk rejects non-positive quan
 
 #### PERSIST-001 [P2] Surface journal write failure
 
+Implementation status: **Complete (2026-09-10)**. Event acceptance, successful persistence, and async drops are counted separately; write or flush failure produces `persist_write` and the shared failed-run exit path.
+
 - A failed stream write must not increment `persisted_event_count`.
 - Check stream state during draining and after final flush.
 - Return a nonzero process status or an explicit failed-run status when persistence fails.

@@ -27,7 +27,7 @@ struct TradeEvent {
 
 [[nodiscard]] const char* reject_reason_name(RejectReason reason) noexcept;
 void write_trade_event_log(std::ostream& out, const TradeEvent& event);
-void write_trade_event_persistence(std::ostream& out, const TradeEvent& event);
+[[nodiscard]] bool write_trade_event_persistence(std::ostream& out, const TradeEvent& event);
 
 static_assert(sizeof(TradeEvent) == 24, "TradeEvent should stay compact for queue traffic.");
 

@@ -1,6 +1,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <sstream>
+#include <streambuf>
 #include <string>
 
 #include "fill_logger.h"
@@ -32,15 +33,32 @@ bool test_reject_log_format() {
 
 bool test_persistence_format() {
     std::ostringstream out;
-    llt::write_trade_event_persistence(out, llt::TradeEvent{
-        3030, 0, 25, llt::EventKind::RiskReject, llt::Side::Buy, llt::RejectReason::MaxPosition});
-    return check_eq("persist_log", out.str(), "RISK_REJECT,3030,BUY,0,25,MAX_POSITION\n");
+    return llt::write_trade_event_persistence(out, llt::TradeEvent{
+               3030, 0, 25, llt::EventKind::RiskReject, llt::Side::Buy, llt::RejectReason::MaxPosition}) &&
+        check_eq("persist_log", out.str(), "RISK_REJECT,3030,BUY,0,25,MAX_POSITION\n");
+}
+
+class FailingBuffer final : public std::streambuf {
+protected:
+    int_type overflow(int_type) override { return traits_type::eof(); }
+    std::streamsize xsputn(const char*, std::streamsize) override { return 0; }
+};
+
+bool test_persistence_failure() {
+    FailingBuffer buffer;
+    std::ostream out(&buffer);
+    const bool persisted = llt::write_trade_event_persistence(out, llt::TradeEvent{
+        4040, 100000, 10, llt::EventKind::Fill, llt::Side::Buy, llt::RejectReason::None});
+    return !persisted && !out.good();
 }
 
 }  // namespace
 
 int main() {
-    const bool ok = test_fill_log_format() && test_reject_log_format() && test_persistence_format();
+    const bool ok = test_fill_log_format() &&
+        test_reject_log_format() &&
+        test_persistence_format() &&
+        test_persistence_failure();
     if (!ok) {
         return EXIT_FAILURE;
     }

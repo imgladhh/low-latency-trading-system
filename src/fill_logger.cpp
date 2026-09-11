@@ -73,7 +73,7 @@ void write_trade_event_log(std::ostream& out, const TradeEvent& event) {
         << '\n';
 }
 
-void write_trade_event_persistence(std::ostream& out, const TradeEvent& event) {
+bool write_trade_event_persistence(std::ostream& out, const TradeEvent& event) {
     // Persistence uses a simple CSV journal so Phase 3 can measure the cost of side-channel
     // durability separately from the trading-state transitions themselves.
     out
@@ -93,6 +93,7 @@ void write_trade_event_persistence(std::ostream& out, const TradeEvent& event) {
         << ','
         << reject_reason_name(event.reject_reason)
         << '\n';
+    return static_cast<bool>(out);
 }
 
 }  // namespace llt
