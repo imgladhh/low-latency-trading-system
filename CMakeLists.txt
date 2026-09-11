@@ -16,6 +16,7 @@ add_library(trading_kernel
     src/layout_utils.cpp
     src/mock_venue_gateway.cpp
     src/order_manager.cpp
+    src/replay_runner.cpp
     src/risk_engine.cpp
     src/strategy.cpp
 )
