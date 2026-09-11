@@ -96,7 +96,7 @@ CTest includes six deterministic replay scenarios. Each scenario runs sync repla
 Run:
 
 ```powershell
-.\build\trading_main.exe .\data\sample_replay.csv async .\data\event_journal_async.csv
+.\build\trading_main.exe .\data\sample_replay.csv async .\build\event_journal_async.csv
 ```
 
 General CLI:

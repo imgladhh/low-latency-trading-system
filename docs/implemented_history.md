@@ -772,9 +772,9 @@ trading_main <csv-path> [sync|async] [persistence-path] [aggressive|passive] [pa
 Examples:
 
 ```powershell
-& .\build\trading_main.exe .\data\sample_replay.csv async .\data\event_journal_async.csv
-& .\build\trading_main.exe .\data\sample_replay.csv sync .\data\event_journal_sync.csv
-& .\build\trading_main.exe .\data\phase5_passive_replay.csv async .\data\event_journal_phase5_passive.csv passive 2500
+& .\build\trading_main.exe .\data\sample_replay.csv async .\build\event_journal_async.csv
+& .\build\trading_main.exe .\data\sample_replay.csv sync .\build\event_journal_sync.csv
+& .\build\trading_main.exe .\data\phase5_passive_replay.csv async .\build\event_journal_phase5_passive.csv passive 2500
 ```
 
 The output can be compared using:

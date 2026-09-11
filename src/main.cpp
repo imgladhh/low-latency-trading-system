@@ -65,7 +65,7 @@ llt::ExecutionStyle parse_execution_style(const char* value) {
 RuntimeConfig parse_runtime_config(const int argc, char** argv) {
     RuntimeConfig config{
         SinkMode::Async,
-        ".\\data\\event_journal.csv",
+        "build/event_journal.csv",
         llt::ExecutionStyle::Aggressive,
         3000,
     };
