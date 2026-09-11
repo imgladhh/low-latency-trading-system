@@ -415,6 +415,8 @@ int main(int argc, char** argv) {
     std::cout << "fills=" << fill_count << '\n';
     std::cout << "persisted_events=" << persisted_event_count.load(std::memory_order_relaxed) << '\n';
     std::cout << "dropped_async_events=" << dropped_async_events << '\n';
+    const bool run_failed = dropped_async_events != 0;
+    std::cout << "run_status=" << (run_failed ? "failed" : "ok") << '\n';
     std::cout << "venue_events.rejected=" << rejected_venue_event_count << '\n';
     std::cout << "venue_events.wrong_state=" << wrong_state_event_count << '\n';
     std::cout << "venue_events.wrong_order=" << wrong_order_event_count << '\n';
@@ -444,5 +446,5 @@ int main(int argc, char** argv) {
     std::cout << "order_manager.leaves_qty=" << order_manager.order().leaves_qty << '\n';
     llt::print_layout_summary(std::cout);
 
-    return EXIT_SUCCESS;
+    return run_failed ? EXIT_FAILURE : EXIT_SUCCESS;
 }

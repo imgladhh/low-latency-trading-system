@@ -259,6 +259,8 @@ Deferred:
 
 #### DET-001 [P1] Define deterministic output precisely
 
+Implementation status: **Complete (2026-09-10)**. README and the deterministic replay contract now distinguish stable business artifacts from latency, scheduling, path, and environment output.
+
 The deterministic contract applies to:
 
 - accepted business events in order;
@@ -276,6 +278,8 @@ The contract does not apply to:
 README wording must use “deterministic business state and event ordering” rather than implying that complete stdout is byte-identical.
 
 #### DET-002 [P1] Define async journal validity
+
+Implementation status: **Complete (2026-09-10)**. Sync is documented as the golden reference, and any async event drop marks the run failed and returns a nonzero process status.
 
 - Queue saturation in async mode may depend on consumer scheduling.
 - A replay artifact is valid for deterministic comparison only when `dropped_async_events == 0`.

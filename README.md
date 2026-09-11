@@ -1,6 +1,6 @@
 # Low Latency Trading System
 
-A deterministic, replay-driven C++20 trading kernel for learning low-latency architecture with correctness first.
+A replay-driven C++20 trading kernel for learning low-latency architecture with correctness first. Given valid input and a fixed run configuration, business state and accepted event ordering are deterministic.
 
 Detailed implementation history (all completed phases and module deep-dives):
 - [Implemented Phase Details](./docs/implemented_history.md)
@@ -8,7 +8,7 @@ Detailed implementation history (all completed phases and module deep-dives):
 ## What This Repo Is
 
 - single process, single symbol core
-- deterministic replay (`same input -> same output`)
+- deterministic business state and event ordering for the same valid input and run configuration
 - fixed-point price + accounting-first state transitions
 - teaching-oriented architecture that can evolve toward production patterns
 
@@ -21,6 +21,8 @@ Hot path (synchronous):
 Cold/side path (optional async):
 
 `event sink/logging/persistence` via SPSC ring buffer (`sync` vs `async` modes for A/B latency comparison)
+
+Measured latency, thread scheduling, output paths, and other environment metadata are not byte-stable replay outputs. Sync persistence is the golden reference. Async output is comparable only when `dropped_async_events=0`; any drop fails the run. See [Deterministic Replay Contract](./docs/determinism.md).
 
 ## Principles (Non-Negotiable)
 
