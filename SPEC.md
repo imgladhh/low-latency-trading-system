@@ -82,6 +82,8 @@ Acceptance criteria:
 
 #### EXEC-001 [P1] Define aggressive orders as IOC
 
+Implementation status: **Complete (2026-09-10)**. Aggressive orders now produce a deterministic IOC lifecycle across the simulator, gateway, OMS, and accounting integration tests.
+
 Current defect:
 
 - `ExecutionSimulator::aggressive_fill()` reports `leaves_qty == 0` after a partial fill and after a no-fill result.
@@ -104,6 +106,9 @@ Recommended minimal model:
 - Permit `VenueEventType::Expired` while the OMS is in `OrderState::Acked` or `OrderState::PartiallyFilled`.
 - Add a distinct `OrderState::Expired`; do not collapse venue-expired IOC remainder and user-requested cancel acknowledgment into `Canceled`.
 - Set OMS `leaves_qty` to zero on expiration without changing `cum_qty`.
+- Applying `VenueEventType::Expired` successfully uses the normal success path (`true` until OMS-002 is implemented, then `Applied`); it does not require a special outcome.
+- `VenueEventType::Expired` must match the active `venue_order_id`. A mismatched event fails without mutation (`false` until OMS-002 is implemented, then `WrongOrder`).
+- `VenueEventType::Expired` received before acknowledgment or after any terminal state (`Filled`, `Canceled`, `Rejected`, or `Expired`) fails without mutation (`false` until OMS-002 is implemented, then `WrongState`).
 - Preserve the initiating terminal cause directly in OMS state so state-transition logs and metrics can distinguish `Expired` from `Canceled` without consulting another stream.
 - Because both enums intentionally use the member name `Expired`, logs, test labels, assertion messages, and design documentation must spell them as `VenueEventType::Expired` and `OrderState::Expired`; unqualified `Expired` is not permitted in diagnostic text.
 
@@ -114,6 +119,9 @@ Required tests:
 - aggressive zero fill followed by expiration;
 - ability to submit a new order after each terminal result;
 - cross-module assertions that gateway and OMS agree on live/terminal status, cumulative quantity, and leaves quantity.
+- wrong-order and terminal-state `VenueEventType::Expired` events are rejected without mutation.
+
+`VenueEventBatch` is a per-`on_tick()` FIFO batch. The gateway admits at most one pending or active order, so one aggressive submission emits at most three events (`NewAck`, optional `Fill`, `Expired`) and fits the current capacity of four.
 
 The existing test that expects zero leaves directly from a partial `ExecutionReport` must be replaced with assertions for the complete IOC lifecycle.
 

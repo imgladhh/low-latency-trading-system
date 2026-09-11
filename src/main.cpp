@@ -269,7 +269,8 @@ int main(int argc, char** argv) {
         }
 
         if (order_manager.order().state == llt::OrderState::Filled ||
-            order_manager.order().state == llt::OrderState::Canceled) {
+            order_manager.order().state == llt::OrderState::Canceled ||
+            order_manager.order().state == llt::OrderState::Expired) {
             passive_submit_ts_ns = -1;
         }
 

@@ -1,6 +1,7 @@
 #include <cstdlib>
 #include <iostream>
 
+#include "accounting_engine.h"
 #include "mock_venue_gateway.h"
 
 namespace {
@@ -81,10 +82,108 @@ bool test_cancel_ack_flow() {
         check_true("cancel.ack_type", final_ack.events[0].type == llt::VenueEventType::CancelAck);
 }
 
+bool apply_batch(
+    const llt::VenueEventBatch& batch,
+    llt::OrderManager& oms,
+    llt::AccountingEngine& accounting,
+    std::int64_t& applied_fill_count) {
+    for (std::size_t i = 0; i < batch.count; ++i) {
+        llt::Fill fill{};
+        if (!oms.on_venue_event(batch.events[i], fill)) {
+            return false;
+        }
+        if (batch.events[i].type == llt::VenueEventType::Fill) {
+            accounting.apply_fill(fill);
+            ++applied_fill_count;
+        }
+    }
+    return true;
+}
+
+bool test_aggressive_ioc_lifecycles() {
+    struct Scenario {
+        const char* label;
+        std::int64_t client_order_id;
+        std::int32_t order_qty;
+        std::int32_t available_qty;
+        std::size_t expected_event_count;
+        std::int32_t expected_cum_qty;
+        llt::OrderState expected_state;
+    };
+
+    const Scenario scenarios[]{
+        {"full", 10, 40, 50, 2, 40, llt::OrderState::Filled},
+        {"partial", 11, 100, 40, 3, 40, llt::OrderState::Expired},
+        {"zero", 13, 100, 0, 2, 0, llt::OrderState::Expired},
+    };
+
+    for (const Scenario& scenario : scenarios) {
+        llt::MockVenueGateway gateway(0, 0);
+        llt::OrderManager oms;
+        llt::AccountingEngine accounting;
+        if (!gateway.send_new(llt::GatewayNewOrder{
+                scenario.client_order_id,
+                llt::Side::Buy,
+                scenario.order_qty,
+                100200,
+                llt::ExecutionStyle::Aggressive,
+                1000}) ||
+            !oms.submit_new(scenario.client_order_id, llt::Side::Buy, 100200, scenario.order_qty)) {
+            std::cerr << scenario.label << " submit failed\n";
+            return false;
+        }
+
+        const llt::VenueEventBatch batch = gateway.on_tick(
+            llt::MarketTick{1000, 1000, 100000, 100200, 1, 50, scenario.available_qty});
+        if (batch.count != scenario.expected_event_count ||
+            batch.events[0].type != llt::VenueEventType::NewAck) {
+            std::cerr << scenario.label << " event count/order mismatch\n";
+            return false;
+        }
+        if (scenario.expected_cum_qty > 0 &&
+            batch.events[1].type != llt::VenueEventType::Fill) {
+            std::cerr << scenario.label << " missing VenueEventType::Fill\n";
+            return false;
+        }
+        if (scenario.expected_state == llt::OrderState::Expired &&
+            batch.events[batch.count - 1].type != llt::VenueEventType::Expired) {
+            std::cerr << scenario.label << " missing VenueEventType::Expired\n";
+            return false;
+        }
+
+        std::int64_t applied_fill_count = 0;
+        if (!apply_batch(batch, oms, accounting, applied_fill_count) ||
+            oms.order().state != scenario.expected_state ||
+            oms.order().cum_qty != scenario.expected_cum_qty ||
+            oms.order().leaves_qty != 0 ||
+            accounting.position().net_qty != scenario.expected_cum_qty ||
+            applied_fill_count != (scenario.expected_cum_qty > 0 ? 1 : 0)) {
+            std::cerr << scenario.label << " cross-module state mismatch\n";
+            return false;
+        }
+
+        if (!gateway.send_new(llt::GatewayNewOrder{
+                scenario.client_order_id + 100,
+                llt::Side::Sell,
+                1,
+                100000,
+                llt::ExecutionStyle::Aggressive,
+                2000}) ||
+            !oms.submit_new(scenario.client_order_id + 100, llt::Side::Sell, 100000, 1)) {
+            std::cerr << scenario.label << " resubmit failed\n";
+            return false;
+        }
+    }
+
+    return true;
+}
+
 }  // namespace
 
 int main() {
-    const bool ok = test_new_ack_and_fill_flow() && test_cancel_ack_flow();
+    const bool ok = test_new_ack_and_fill_flow() &&
+        test_cancel_ack_flow() &&
+        test_aggressive_ioc_lifecycles();
     if (!ok) {
         return EXIT_FAILURE;
     }

@@ -71,6 +71,17 @@ VenueEventBatch MockVenueGateway::on_tick(const MarketTick& tick) noexcept {
             pending_new_.request.style);
         active_order_.leaves_qty = report.leaves_qty;
         apply_execution_report(batch, report, tick.receive_ts_ns);
+        if (pending_new_.request.style == ExecutionStyle::Aggressive &&
+            active_order_.leaves_qty > 0) {
+            push_event(batch, VenueEvent{
+                VenueEventType::Expired,
+                tick.receive_ts_ns,
+                active_order_.venue_order_id,
+                0,
+                0,
+            });
+            active_order_.leaves_qty = 0;
+        }
         pending_new_.active = false;
         close_active_order_if_done();
     }

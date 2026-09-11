@@ -43,7 +43,25 @@ bool test_aggressive_partial_fill() {
         check_true("aggr.partial", report.was_partial) &&
         check_eq("aggr.fill_qty", report.fill.quantity, 40) &&
         check_eq("aggr.fill_price", report.fill.price, 100200) &&
-        check_eq("aggr.leaves", report.leaves_qty, 0);
+        check_eq("aggr.leaves", report.leaves_qty, 60);
+}
+
+bool test_aggressive_full_and_zero_fill() {
+    llt::ExecutionSimulator sim;
+    const llt::ExecutionReport full = sim.submit_order(
+        llt::MarketTick{1000, 1000, 100000, 100200, 1, 50, 100},
+        llt::OrderRequest{llt::Side::Buy, 100, 0},
+        llt::ExecutionStyle::Aggressive);
+    const llt::ExecutionReport zero = sim.submit_order(
+        llt::MarketTick{2000, 2000, 100000, 100200, 1, 50, 0},
+        llt::OrderRequest{llt::Side::Buy, 100, 0},
+        llt::ExecutionStyle::Aggressive);
+
+    return check_true("aggr.full.fill", full.has_fill) &&
+        check_false("aggr.full.partial", full.was_partial) &&
+        check_eq("aggr.full.leaves", full.leaves_qty, 0) &&
+        check_false("aggr.zero.fill", zero.has_fill) &&
+        check_eq("aggr.zero.leaves", zero.leaves_qty, 100);
 }
 
 bool test_passive_queue_progression() {
@@ -127,6 +145,7 @@ bool test_stale_and_adverse_selection() {
 int main() {
     const bool ok =
         test_aggressive_partial_fill() &&
+        test_aggressive_full_and_zero_fill() &&
         test_passive_queue_progression() &&
         test_cancel_latency_ack() &&
         test_stale_and_adverse_selection();

@@ -9,7 +9,8 @@ bool OrderManager::submit_new(
     const std::int32_t qty) noexcept {
     if (order_.state == OrderState::Filled ||
         order_.state == OrderState::Canceled ||
-        order_.state == OrderState::Rejected) {
+        order_.state == OrderState::Rejected ||
+        order_.state == OrderState::Expired) {
         order_ = ManagedOrder{0, 0, Side::Buy, 0, 0, 0, 0, OrderState::Idle};
     }
 
@@ -91,6 +92,16 @@ bool OrderManager::on_venue_event(const VenueEvent& event, Fill& fill_out) noexc
         }
         order_.state = order_.leaves_qty == order_.order_qty ? OrderState::Acked : OrderState::PartiallyFilled;
         return true;
+
+    case VenueEventType::Expired:
+        if ((order_.state != OrderState::Acked &&
+             order_.state != OrderState::PartiallyFilled) ||
+            event.venue_order_id != order_.venue_order_id) {
+            return false;
+        }
+        order_.leaves_qty = 0;
+        order_.state = OrderState::Expired;
+        return true;
     }
 
     return false;
@@ -114,6 +125,8 @@ const char* order_state_name(const OrderState state) noexcept {
         return "Canceled";
     case OrderState::Rejected:
         return "Rejected";
+    case OrderState::Expired:
+        return "Expired";
     }
 
     return "Unknown";

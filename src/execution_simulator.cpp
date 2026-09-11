@@ -72,7 +72,7 @@ ExecutionReport ExecutionSimulator::aggressive_fill(
     const std::int32_t fill_qty =
         available_qty < request.quantity ? available_qty : request.quantity;
     if (fill_qty <= 0) {
-        return ExecutionReport{true, false, false, false, false, false, Fill{}, 0};
+        return ExecutionReport{true, false, false, false, false, false, Fill{}, request.quantity};
     }
 
     const bool was_partial = fill_qty < request.quantity;
@@ -88,7 +88,16 @@ ExecutionReport ExecutionSimulator::aggressive_fill(
         request.side,
     };
 
-    return ExecutionReport{true, true, was_partial, false, false, false, fill, 0};
+    return ExecutionReport{
+        true,
+        true,
+        was_partial,
+        false,
+        false,
+        false,
+        fill,
+        request.quantity - fill_qty,
+    };
 }
 
 ExecutionReport ExecutionSimulator::passive_fill_from_market(const MarketTick& tick) noexcept {

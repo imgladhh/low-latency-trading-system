@@ -15,6 +15,7 @@ enum class OrderState : std::uint8_t {
     Filled = 5,
     Canceled = 6,
     Rejected = 7,
+    Expired = 8,
 };
 
 enum class VenueEventType : std::uint8_t {
@@ -23,6 +24,7 @@ enum class VenueEventType : std::uint8_t {
     Fill = 2,
     CancelAck = 3,
     CancelReject = 4,
+    Expired = 5,
 };
 
 struct VenueEvent {
