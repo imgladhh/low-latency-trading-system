@@ -529,6 +529,8 @@ Implementation status: **Complete (2026-09-11)**. Duplicate logging code and unu
 
 #### CLEAN-002 [P3] Keep auxiliary interview exercises separate
 
+Implementation status: **Complete (2026-09-11)**. The retained C++/Python thread-pool exercise has its own documentation and namespace, is excluded from default builds behind `LLT_BUILD_INTERVIEW_EXERCISES`, has an independent test target, and never links to `trading_kernel` or participates in trading-architecture claims.
+
 The untracked `interview/thread_pool` exercise is not part of the trading hot path.
 
 If retained:

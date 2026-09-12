@@ -13,6 +13,10 @@ Detailed implementation history (all completed phases and module deep-dives):
 - fixed-point price + accounting-first state transitions
 - teaching-oriented architecture that can evolve toward production patterns
 
+The optional [`interview/thread_pool`](./interview/thread_pool/) directory is a standalone
+interview exercise. It is excluded from normal builds and is not the trading kernel's concurrency
+model; the kernel's event side channel remains SPSC.
+
 ## Current Big Architecture
 
 Hot path (synchronous):

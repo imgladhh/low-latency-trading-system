@@ -45,6 +45,12 @@ target_compile_definitions(bench_replay PRIVATE
     LLT_GIT_COMMIT="${LLT_GIT_COMMIT}"
 )
 
+option(LLT_BUILD_INTERVIEW_EXERCISES "Build standalone auxiliary interview exercises" OFF)
+if(LLT_BUILD_INTERVIEW_EXERCISES)
+    add_executable(thread_pool_interview_tests interview/thread_pool/thread_pool_tests.cpp)
+    target_include_directories(thread_pool_interview_tests PRIVATE interview/thread_pool)
+endif()
+
 add_executable(accounting_tests tests/accounting_tests.cpp)
 target_link_libraries(accounting_tests PRIVATE trading_kernel)
 
@@ -90,6 +96,9 @@ add_test(NAME mock_venue_gateway_tests COMMAND mock_venue_gateway_tests)
 add_test(NAME csv_reader_tests COMMAND csv_reader_tests)
 add_test(NAME config_parser_tests COMMAND config_parser_tests)
 add_test(NAME risk_engine_tests COMMAND risk_engine_tests)
+if(LLT_BUILD_INTERVIEW_EXERCISES)
+    add_test(NAME thread_pool_interview_tests COMMAND thread_pool_interview_tests)
+endif()
 add_test(
     NAME benchmark_smoke
     COMMAND $<TARGET_FILE:bench_replay>
