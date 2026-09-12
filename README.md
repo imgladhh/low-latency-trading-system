@@ -17,7 +17,7 @@ Detailed implementation history (all completed phases and module deep-dives):
 
 Hot path (synchronous):
 
-`MarketTick -> Strategy -> Risk -> Execution -> Accounting -> OMS state update`
+`MarketTick -> Strategy -> Risk -> Execution/Gateway -> OMS validation -> Accounting`
 
 Cold/side path (optional async):
 

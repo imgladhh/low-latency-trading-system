@@ -55,16 +55,6 @@ void write_trade_event_log(std::ostream& out, const TradeEvent& event) {
         return;
     }
 
-    if (event.kind == EventKind::VenueReject) {
-        out
-            << "venue_reject ts_ns=" << event.ts_ns
-            << " side=" << (event.side == Side::Buy ? "BUY" : "SELL")
-            << " qty=" << event.quantity
-            << " reason=" << reject_reason_name(event.reject_reason)
-            << '\n';
-        return;
-    }
-
     out
         << "reject ts_ns=" << event.ts_ns
         << " side=" << (event.side == Side::Buy ? "BUY" : "SELL")

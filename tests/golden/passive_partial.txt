@@ -7,8 +7,12 @@ FILL,3000,BUY,99900,20,NONE
 # summary
 execution_mode=passive
 passive_cancel_after_ns=10000
-orders=2
-rejects=0
+strategy_signals=2
+local_submissions=1
+gateway_submissions=1
+risk_rejects=0
+venue_rejects=0
+invalid_venue_events=0
 fills=1
 persisted_events=4
 dropped_async_events=0
@@ -17,7 +21,7 @@ events.persisted=4
 events.dropped=0
 run_status=ok
 failure_reasons=none
-venue_events.rejected=0
+venue_events.batch_overflow=0
 venue_events.wrong_state=0
 venue_events.wrong_order=0
 venue_events.invalid_quantity=0

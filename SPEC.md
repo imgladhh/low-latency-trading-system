@@ -518,6 +518,8 @@ Required CI jobs:
 
 #### CLEAN-001 [P3] Remove dead and misleading code
 
+Implementation status: **Complete (2026-09-11)**. Duplicate logging code and unused strategy-decision fields are removed; replay summaries distinguish strategy signals, local/gateway submissions, risk/venue rejects, and invalid venue events; venue batch overflow is counted and invalidates replay/benchmark results; golden artifacts and the README event-flow narrative use the corrected semantics.
+
 - Remove the duplicate `EventKind::VenueReject` branch in `fill_logger.cpp`.
 - Replace silent `VenueEventBatch` overflow with an assertion or counter.
 - Rename `orders` to distinguish strategy signals, local submissions, and gateway submissions.

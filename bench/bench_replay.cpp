@@ -153,6 +153,7 @@ bool run_mode(const std::vector<llt::MarketTick>& ticks, llt::ReplaySinkMode mod
             std::chrono::steady_clock::now() - start).count();
         const bool valid = !result.sink_failed && !result.latency_overflow &&
             result.counters.dropped_events == 0 &&
+            result.counters.venue_batch_overflows == 0 &&
             result.counters.persisted_events == result.counters.accepted_events;
         if (trial == 1) reference_checksum = sink.checksum();
         const bool deterministic_events = sink.checksum() == reference_checksum;
@@ -161,6 +162,7 @@ bool run_mode(const std::vector<llt::MarketTick>& ticks, llt::ReplaySinkMode mod
             << " persisted=" << result.counters.persisted_events
             << " dropped=" << result.counters.dropped_events
             << " latency_overflow=" << result.latency_overflow
+            << " venue_batch_overflow=" << result.counters.venue_batch_overflows
             << " sink_events=" << sink.count()
             << " checksum=" << sink.checksum()
             << " status=" << (valid && deterministic_events ? "ok" : "failed") << '\n';

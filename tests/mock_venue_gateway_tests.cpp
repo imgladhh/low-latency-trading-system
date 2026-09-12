@@ -39,6 +39,7 @@ bool test_new_ack_and_fill_flow() {
     const llt::MarketTick tick2{1200, 1200, 100000, 100000, 1, 10, 20};
     const llt::VenueEventBatch batch2 = gateway.on_tick(tick2);
     if (!(check_eq("batch2.count", batch2.count, 2) &&
+        check_eq("batch2.overflow", batch2.overflow_count, 0) &&
         check_true("batch2.new_ack", batch2.events[0].type == llt::VenueEventType::NewAck))) {
         return false;
     }
@@ -138,6 +139,7 @@ bool test_aggressive_ioc_lifecycles() {
         const llt::VenueEventBatch batch = gateway.on_tick(
             llt::MarketTick{1000, 1000, 100000, 100200, 1, 50, scenario.available_qty});
         if (batch.count != scenario.expected_event_count ||
+            batch.overflow_count != 0 ||
             batch.events[0].type != llt::VenueEventType::NewAck) {
             std::cerr << scenario.label << " event count/order mismatch\n";
             return false;

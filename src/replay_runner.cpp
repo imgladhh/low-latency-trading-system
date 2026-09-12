@@ -110,15 +110,17 @@ ReplayResult run_replay(
             emit_transition(event.ts_ns, from, order_manager.order().state, side);
             handle_fill(fill, tick);
             if (event.type == VenueEventType::NewReject) {
+                ++result.counters.venue_rejects;
                 emit_event(TradeEvent{event.ts_ns, 0, order_manager.order().order_qty,
                     EventKind::VenueReject, side, RejectReason::NewRejectedByVenue});
             } else if (event.type == VenueEventType::CancelReject) {
+                ++result.counters.venue_rejects;
                 emit_event(TradeEvent{event.ts_ns, 0, order_manager.order().leaves_qty,
                     EventKind::VenueReject, side, RejectReason::CancelRejectedByVenue});
             }
             return;
         }
-        ++result.counters.rejected_venue_events;
+        ++result.counters.invalid_venue_events;
         switch (outcome) {
         case VenueEventOutcome::WrongState: ++result.counters.wrong_state_events; break;
         case VenueEventOutcome::WrongOrder: ++result.counters.wrong_order_events; break;
@@ -142,6 +144,7 @@ ReplayResult run_replay(
 
         const auto resting_start = std::chrono::steady_clock::now();
         const VenueEventBatch batch = gateway.on_tick(tick);
+        result.counters.venue_batch_overflows += static_cast<std::int64_t>(batch.overflow_count);
         const auto resting_end = std::chrono::steady_clock::now();
         (void)result.latencies.execution.record(
             std::chrono::duration_cast<std::chrono::nanoseconds>(resting_end - resting_start).count());
@@ -178,14 +181,14 @@ ReplayResult run_replay(
             continue;
         }
 
-        ++result.counters.orders;
+        ++result.counters.strategy_signals;
         const auto risk_start = std::chrono::steady_clock::now();
         const OrderDecision risk_decision = risk.evaluate(accounting.position(), decision.order);
         const auto risk_end = std::chrono::steady_clock::now();
         (void)result.latencies.risk.record(
             std::chrono::duration_cast<std::chrono::nanoseconds>(risk_end - risk_start).count());
         if (!risk_decision.accepted) {
-            ++result.counters.rejects;
+            ++result.counters.risk_rejects;
             emit_event(TradeEvent{tick.receive_ts_ns, 0, decision.order.quantity,
                 EventKind::RiskReject, decision.order.side, risk_decision.reject_reason});
             (void)result.latencies.end_to_end.record(
@@ -204,7 +207,9 @@ ReplayResult run_replay(
             current_client_id, request.side, request.limit_price, request.quantity);
         bool gateway_accepted = false;
         if (local) {
+            ++result.counters.local_submissions;
             emit_transition(tick.receive_ts_ns, OrderState::Idle, OrderState::PendingNewAck, request.side);
+            ++result.counters.gateway_submissions;
             gateway_accepted = gateway.send_new(GatewayNewOrder{current_client_id, request.side,
                 request.quantity, request.limit_price, config.execution_style, tick.receive_ts_ns});
             if (!gateway_accepted) {

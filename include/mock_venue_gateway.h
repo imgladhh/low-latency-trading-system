@@ -22,6 +22,7 @@ struct GatewayNewOrder {
 struct VenueEventBatch {
     std::array<VenueEvent, 4> events{};
     std::size_t count{0};
+    std::size_t overflow_count{0};
 };
 
 class MockVenueGateway {

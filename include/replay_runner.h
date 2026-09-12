@@ -29,13 +29,17 @@ struct ReplayConfig {
 };
 
 struct ReplayCounters {
-    std::int64_t orders{0};
-    std::int64_t rejects{0};
+    std::int64_t strategy_signals{0};
+    std::int64_t local_submissions{0};
+    std::int64_t gateway_submissions{0};
+    std::int64_t risk_rejects{0};
+    std::int64_t venue_rejects{0};
+    std::int64_t invalid_venue_events{0};
     std::int64_t fills{0};
     std::int64_t accepted_events{0};
     std::int64_t persisted_events{0};
     std::int64_t dropped_events{0};
-    std::int64_t rejected_venue_events{0};
+    std::int64_t venue_batch_overflows{0};
     std::int64_t wrong_state_events{0};
     std::int64_t wrong_order_events{0};
     std::int64_t invalid_quantity_events{0};

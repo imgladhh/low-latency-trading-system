@@ -115,6 +115,7 @@ VenueEventBatch MockVenueGateway::on_tick(const MarketTick& tick) noexcept {
 
 void MockVenueGateway::push_event(VenueEventBatch& batch, const VenueEvent& event) noexcept {
     if (batch.count >= batch.events.size()) {
+        ++batch.overflow_count;
         return;
     }
     batch.events[batch.count++] = event;

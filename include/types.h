@@ -69,8 +69,6 @@ struct OrderDecision {
 struct StrategyDecision {
     bool has_order;
     OrderRequest order;
-    ExecutionStyle execution_style;
-    bool request_cancel;
 };
 
 inline constexpr std::int64_t side_sign(const Side side) {

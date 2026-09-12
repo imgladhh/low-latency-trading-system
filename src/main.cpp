@@ -56,8 +56,8 @@ private:
     std::ostream& persistence_;
 };
 
-void print_failure_reasons(bool async_drop, bool persistence, bool latency_overflow) {
-    if (!async_drop && !persistence && !latency_overflow) {
+void print_failure_reasons(bool async_drop, bool persistence, bool latency_overflow, bool batch_overflow) {
+    if (!async_drop && !persistence && !latency_overflow && !batch_overflow) {
         std::cout << "none\n";
         return;
     }
@@ -70,6 +70,7 @@ void print_failure_reasons(bool async_drop, bool persistence, bool latency_overf
     if (async_drop) print("async_drop");
     if (persistence) print("persist_write");
     if (latency_overflow) print("latency_overflow");
+    if (batch_overflow) print("venue_event_batch_overflow");
     std::cout << '\n';
 }
 }  // namespace
@@ -112,14 +113,19 @@ int main(int argc, char** argv) {
     persistence.flush();
     persistence_failed = persistence_failed || result.sink_failed || !persistence;
     const bool async_drop_failed = result.counters.dropped_events != 0;
-    const bool run_failed = async_drop_failed || persistence_failed || result.latency_overflow;
+    const bool batch_overflow_failed = result.counters.venue_batch_overflows != 0;
+    const bool run_failed = async_drop_failed || persistence_failed || result.latency_overflow || batch_overflow_failed;
 
     std::cout << "sink_mode=" << sink_mode_name(config.sink_mode) << '\n';
     std::cout << "persistence_path=" << config.persistence_path << '\n';
     std::cout << "execution_mode=" << (config.execution_style == llt::ExecutionStyle::Aggressive ? "aggressive" : "passive") << '\n';
     std::cout << "passive_cancel_after_ns=" << config.passive_cancel_after_ns << '\n';
-    std::cout << "orders=" << result.counters.orders << '\n';
-    std::cout << "rejects=" << result.counters.rejects << '\n';
+    std::cout << "strategy_signals=" << result.counters.strategy_signals << '\n';
+    std::cout << "local_submissions=" << result.counters.local_submissions << '\n';
+    std::cout << "gateway_submissions=" << result.counters.gateway_submissions << '\n';
+    std::cout << "risk_rejects=" << result.counters.risk_rejects << '\n';
+    std::cout << "venue_rejects=" << result.counters.venue_rejects << '\n';
+    std::cout << "invalid_venue_events=" << result.counters.invalid_venue_events << '\n';
     std::cout << "fills=" << result.counters.fills << '\n';
     std::cout << "persisted_events=" << result.counters.persisted_events << '\n';
     std::cout << "dropped_async_events=" << result.counters.dropped_events << '\n';
@@ -128,8 +134,8 @@ int main(int argc, char** argv) {
     std::cout << "events.dropped=" << result.counters.dropped_events << '\n';
     std::cout << "run_status=" << (run_failed ? "failed" : "ok") << '\n';
     std::cout << "failure_reasons=";
-    print_failure_reasons(async_drop_failed, persistence_failed, result.latency_overflow);
-    std::cout << "venue_events.rejected=" << result.counters.rejected_venue_events << '\n';
+    print_failure_reasons(async_drop_failed, persistence_failed, result.latency_overflow, batch_overflow_failed);
+    std::cout << "venue_events.batch_overflow=" << result.counters.venue_batch_overflows << '\n';
     std::cout << "venue_events.wrong_state=" << result.counters.wrong_state_events << '\n';
     std::cout << "venue_events.wrong_order=" << result.counters.wrong_order_events << '\n';
     std::cout << "venue_events.invalid_quantity=" << result.counters.invalid_quantity_events << '\n';
