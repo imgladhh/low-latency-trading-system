@@ -25,6 +25,9 @@ jobs:
       - name: Run unit, integration, and deterministic replay tests
         run: ctest --test-dir build --build-config Release --output-on-failure
 
+      - name: Run benchmark smoke without latency thresholds
+        run: ctest --test-dir build --build-config Release -R '^benchmark_smoke$' --output-on-failure
+
   thread-sanitizer:
     runs-on: ubuntu-latest
     timeout-minutes: 5

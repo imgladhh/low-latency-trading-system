@@ -482,7 +482,7 @@ Do not replace SPSC with MPMC or a general-purpose thread pool for the current a
 
 #### BENCH-001 [P2] Add a reproducible in-process benchmark
 
-Implementation status: **Complete (2026-09-12)**. `bench_replay` uses the reusable replay runner with fresh state per trial, fixed-seed platform-independent dataset generation, a committed 100,000-tick configuration and hash, discarded warm-ups, repeated sync/async measurements, cross-mode event checksums, drop/overflow validity gates, Release build metadata, and optional CSV output. Measurement boundaries and the in-process-only claim are documented in `docs/benchmark.md`.
+Implementation status: **Complete (2026-09-11)**. `bench_replay` uses the reusable replay runner with fresh state per trial, fixed-seed platform-independent dataset generation, a committed 100,000-tick configuration and hash, discarded warm-ups, repeated sync/async measurements, cross-mode event checksums, drop/overflow validity gates, Release build metadata, and optional CSV output. Measurement boundaries and the in-process-only claim are documented in `docs/benchmark.md`.
 
 This phase begins only after Phases 1–8 pass.
 
@@ -501,6 +501,8 @@ Requirements:
 All claims must be labeled as in-process replay latency. They must not be described as TCP, FIX, NIC, wire, or network end-to-end latency.
 
 #### CI-001 [P2] Establish the basic quality gate
+
+Implementation status: **Complete (2026-09-11)**. GitHub Actions configures and builds Release, runs every CTest target including the six deterministic golden replays, explicitly runs a threshold-free benchmark smoke test, and retains the separate SPSC ThreadSanitizer job.
 
 Required CI jobs:
 

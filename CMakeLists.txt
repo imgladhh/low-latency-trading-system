@@ -90,6 +90,14 @@ add_test(NAME mock_venue_gateway_tests COMMAND mock_venue_gateway_tests)
 add_test(NAME csv_reader_tests COMMAND csv_reader_tests)
 add_test(NAME config_parser_tests COMMAND config_parser_tests)
 add_test(NAME risk_engine_tests COMMAND risk_engine_tests)
+add_test(
+    NAME benchmark_smoke
+    COMMAND $<TARGET_FILE:bench_replay>
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/determinism/aggressive_full.csv
+        --warmup 1
+        --measured 2
+)
+set_tests_properties(benchmark_smoke PROPERTIES TIMEOUT 30)
 
 set(DETERMINISM_CASES
     "aggressive_full|aggressive|3000"

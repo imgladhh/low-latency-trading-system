@@ -47,10 +47,9 @@ Completed:
 
 Planned (priority order):
 
-- Phase 7-A: CI deterministic replay gate (highest priority)
-  - add replay-diff check in CI and fail build when output drifts unexpectedly
-  - lock deterministic run config (input file, mode, seed policy if needed)
-  - done when: every PR must pass deterministic replay regression checks
+- Phase 7-A: CI deterministic replay gate (complete)
+  - Release build, complete CTest suite, six deterministic replay gates
+  - threshold-free benchmark smoke test and separate SPSC ThreadSanitizer evidence
 
 - Phase 7-B: benchmark harness + frozen configuration (complete)
   - deterministic fixed-seed dataset generation and committed run configuration
@@ -75,7 +74,7 @@ Planned (priority order):
 
 ## Immediate TODOs
 
-- implement Phase 7-A CI deterministic replay gate
+- keep the completed Phase 7-A CI and golden gates green
 - run the committed Phase 7-B reference benchmark on publication hardware before quoting numbers
 - implement Phase 7-C risk controls (`max_loss`, `kill_switch`, stale-data guard)
 - implement Phase 7-D failure-path deterministic tests
