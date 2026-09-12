@@ -4,6 +4,7 @@ A replay-driven C++20 trading kernel for learning low-latency architecture with 
 
 Detailed implementation history (all completed phases and module deep-dives):
 - [Implemented Phase Details](./docs/implemented_history.md)
+- [Reproducible In-Process Replay Benchmark](./docs/benchmark.md)
 
 ## What This Repo Is
 
@@ -51,11 +52,10 @@ Planned (priority order):
   - lock deterministic run config (input file, mode, seed policy if needed)
   - done when: every PR must pass deterministic replay regression checks
 
-- Phase 7-B: benchmark harness + frozen datasets
-  - add repeatable benchmark scripts with fixed replay datasets
-  - report `p50/p99/p99.9/max/tail_mean` for baseline scenarios
-  - include sync vs async side-channel comparison
-  - done when: latency tables are reproducible across runs and commits
+- Phase 7-B: benchmark harness + frozen configuration (complete)
+  - deterministic fixed-seed dataset generation and committed run configuration
+  - warm-up plus repeated sync/async in-process replay trials
+  - optional machine-readable CSV and complete reproduction metadata
 
 - Phase 7-C: risk realism upgrade
   - add `max_loss`, `kill_switch`, and stale-market-data guard
@@ -76,7 +76,7 @@ Planned (priority order):
 ## Immediate TODOs
 
 - implement Phase 7-A CI deterministic replay gate
-- implement Phase 7-B benchmark harness and publish first latency evidence table
+- run the committed Phase 7-B reference benchmark on publication hardware before quoting numbers
 - implement Phase 7-C risk controls (`max_loss`, `kill_switch`, stale-data guard)
 - implement Phase 7-D failure-path deterministic tests
 - prepare Phase 8 invariants + recovery scaffolding

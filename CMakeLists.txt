@@ -26,6 +26,25 @@ target_include_directories(trading_kernel PUBLIC include)
 add_executable(trading_main src/main.cpp)
 target_link_libraries(trading_main PRIVATE trading_kernel)
 
+execute_process(
+    COMMAND git rev-parse --short HEAD
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    OUTPUT_VARIABLE LLT_GIT_COMMIT
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+)
+if(NOT LLT_GIT_COMMIT)
+    set(LLT_GIT_COMMIT unknown)
+endif()
+
+add_executable(generate_replay bench/generate_replay.cpp)
+add_executable(bench_replay bench/bench_replay.cpp)
+target_link_libraries(bench_replay PRIVATE trading_kernel)
+target_compile_definitions(bench_replay PRIVATE
+    LLT_BUILD_TYPE="$<CONFIG>"
+    LLT_GIT_COMMIT="${LLT_GIT_COMMIT}"
+)
+
 add_executable(accounting_tests tests/accounting_tests.cpp)
 target_link_libraries(accounting_tests PRIVATE trading_kernel)
 

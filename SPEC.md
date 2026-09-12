@@ -482,6 +482,8 @@ Do not replace SPSC with MPMC or a general-purpose thread pool for the current a
 
 #### BENCH-001 [P2] Add a reproducible in-process benchmark
 
+Implementation status: **Complete (2026-09-12)**. `bench_replay` uses the reusable replay runner with fresh state per trial, fixed-seed platform-independent dataset generation, a committed 100,000-tick configuration and hash, discarded warm-ups, repeated sync/async measurements, cross-mode event checksums, drop/overflow validity gates, Release build metadata, and optional CSV output. Measurement boundaries and the in-process-only claim are documented in `docs/benchmark.md`.
+
 This phase begins only after Phases 1–8 pass.
 
 Requirements:

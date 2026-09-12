@@ -24,6 +24,13 @@ struct LatencySummary {
     std::int64_t max_ns;
 };
 
+struct LatencySamplesView {
+    const std::int64_t* data;
+    std::size_t count;
+    [[nodiscard]] const std::int64_t* begin() const noexcept { return data; }
+    [[nodiscard]] const std::int64_t* end() const noexcept { return data + count; }
+};
+
 class LatencyStats {
 public:
     static constexpr std::size_t p99_min_samples = 100;
@@ -37,6 +44,9 @@ public:
     [[nodiscard]] std::size_t max_per_tick() const noexcept { return max_per_tick_; }
     [[nodiscard]] std::size_t overflow_count() const noexcept { return overflow_count_; }
     [[nodiscard]] const std::int64_t* storage_data() const noexcept { return samples_.data(); }
+    [[nodiscard]] LatencySamplesView samples() const noexcept {
+        return {samples_.data(), sample_count_};
+    }
     [[nodiscard]] LatencySummary summarize() const;
     void print_summary(std::ostream& out, std::string_view name) const;
 
